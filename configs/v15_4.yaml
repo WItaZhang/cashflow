@@ -1,0 +1,65 @@
+seed: 42
+
+runtime:
+  n_jobs: 8
+
+experiment:
+  name: v15_4_moe_56_features
+  log_root: logs
+
+data:
+  consumer_file: data/raw/consumer_data.parquet
+  transactions_dir: data/raw/transactions
+
+features:
+  feature_sets:
+    - v15_4_keep_56
+  extra_features: []
+
+split:
+  name: per_client_stratified_622
+
+model:
+  name: soft_routing_lgbm_moe
+  version: v15_4
+  hyperparameters:
+    router:
+      n_estimators: 600
+      learning_rate: 0.03
+      num_leaves: 63
+      min_child_samples: 30
+    experts:
+      C01:
+        n_estimators: 600
+        learning_rate: 0.03
+        num_leaves: 63
+        min_child_samples: 30
+      C02:
+        n_estimators: 800
+        learning_rate: 0.02
+        num_leaves: 31
+        min_child_samples: 60
+        reg_lambda: 1.0
+        feature_fraction: 0.8
+        bagging_fraction: 0.8
+        bagging_freq: 5
+      C03:
+        n_estimators: 700
+        learning_rate: 0.025
+        num_leaves: 47
+        min_child_samples: 45
+        reg_lambda: 0.5
+        feature_fraction: 0.9
+        bagging_fraction: 0.9
+        bagging_freq: 5
+  training:
+    min_expert_rows: 20
+    downsample_negative_clients: [C01, C03]
+    downsample_negative_keep_ratio: 0.2
+    smote_positive_clients: [C01, C03]
+    smote_positive_multiplier: 2.0
+    smote_k_neighbors: 5
+    sample_weight: true
+
+evaluation:
+  name: standard_holdout

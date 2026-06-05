@@ -1,0 +1,25 @@
+[project]
+name = "cashflow-ml"
+version = "0.1.0"
+description = "Modular experiment pipeline for the cashflow competition."
+requires-python = ">=3.10"
+dependencies = [
+    "joblib",
+    "lightgbm",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "pyyaml",
+    "scikit-learn",
+    "scipy",
+]
+
+[project.scripts]
+cashflow-run = "cashflow_ml.main:main"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
