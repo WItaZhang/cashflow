@@ -1,5 +1,11 @@
 # Data contract
 
+**The original consumer and transaction data are private and are not distributed.**
+This contract documents the expected schema for authorized local runs. The public
+synthetic demo supplies independently generated inputs with the same schema; it
+does not reproduce or expose private records. Method figures are data-free and
+contain no real-data statistics.
+
 All paths come from an experiment YAML and are resolved from the working
 directory. Run commands from the repository root. Original parquet files remain
 external to git and are read-only inputs to the experiment.
