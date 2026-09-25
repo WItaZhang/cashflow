@@ -1,0 +1,102 @@
+# Synthetic inputs only: this config demonstrates the pipeline, not model quality.
+seed: 42
+
+runtime:
+  n_jobs: 2
+
+experiment:
+  name: synthetic_demo
+  log_root: logs
+
+data:
+  consumer_file: data/staging/demo/consumer_data.parquet
+  transactions_dir: data/staging/demo/transactions
+
+demo:
+  staging_root: data/staging
+  evaluation_date: '2025-01-01'
+  history_periods: 12
+  days_per_period: 30
+  transactions_per_period: 8
+  consumer_amount_scale_range: [0.7, 1.3]
+  clients:
+    C01:
+      n_consumers: 80
+      positive_fraction: 0.25
+      balance_range: [-1500, 8000]
+      amount_scale: 0.8
+    C02:
+      n_consumers: 100
+      positive_fraction: 0.35
+      balance_range: [-500, 12000]
+      amount_scale: 1.2
+    C03:
+      n_consumers: 80
+      positive_fraction: 0.20
+      balance_range: [-2500, 6000]
+      amount_scale: 1.0
+  categories:
+    - id: 3
+      amount_range: [1200, 3500]
+    - id: 10
+      amount_range: [50, 400]
+    - id: 12
+      amount_range: [-600, -80]
+    - id: 16
+      amount_range: [-250, -10]
+    - id: 23
+      amount_range: [-45, -5]
+    - id: 26
+      amount_range: [-1200, -100]
+
+features:
+  feature_sets: [cashflow_56]
+  extra_features: []
+
+split:
+  name: per_client_stratified_622
+
+model:
+  name: soft_routing_lgbm_moe
+  version: v15_4
+  hyperparameters:
+    router:
+      n_estimators: 20
+      learning_rate: 0.08
+      num_leaves: 7
+      min_child_samples: 5
+    experts:
+      C01:
+        n_estimators: 20
+        learning_rate: 0.08
+        num_leaves: 7
+        min_child_samples: 5
+      C02:
+        n_estimators: 25
+        learning_rate: 0.06
+        num_leaves: 7
+        min_child_samples: 5
+        reg_lambda: 1.0
+      C03:
+        n_estimators: 20
+        learning_rate: 0.08
+        num_leaves: 7
+        min_child_samples: 5
+        reg_lambda: 0.5
+  training:
+    min_expert_rows: 20
+    downsample_negative_clients: [C01, C03]
+    downsample_negative_keep_ratio: 0.2
+    smote_positive_clients: [C01, C03]
+    smote_positive_multiplier: 2.0
+    smote_k_neighbors: 5
+    sample_weight: true
+
+evaluation:
+  name: standard_holdout
+  permutation_split: validation
+  permutation_features:
+    - inflow_gap_mean
+    - ts_net_slope
+    - fft_inflow_spectral_entropy
+  permutation_n_repeats: 3

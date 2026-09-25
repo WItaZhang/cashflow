@@ -3,12 +3,10 @@
 Each function takes pre-joined DataFrames and returns a per-consumer Series
 or DataFrame indexed by masked_consumer_id. No I/O allowed here.
 """
+
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
-
-EPS = 1e-6
 
 
 def compute_daily_balance(
@@ -62,11 +60,13 @@ def compute_daily_balance(
         future_cumsum = daily.iloc[::-1].cumsum().iloc[::-1].shift(-1, fill_value=0.0)
         balance_series = total_bal - future_cumsum
 
-        df = pd.DataFrame({
-            "masked_consumer_id": cid,
-            "date": balance_series.index,
-            "balance": balance_series.values,
-        })
+        df = pd.DataFrame(
+            {
+                "masked_consumer_id": cid,
+                "date": balance_series.index,
+                "balance": balance_series.values,
+            }
+        )
         records.append(df)
 
     if not records:
@@ -94,10 +94,10 @@ def compute_balance_features(daily_balance: pd.DataFrame, consumers: pd.DataFram
 
     neg_days = grp["balance"].apply(lambda s: (s < 0).sum()).rename("balance_neg_days")
     total_days = grp["balance"].count().rename("_total_days")
-    bal_min  = grp["balance"].min().rename("balance_min")
+    bal_min = grp["balance"].min().rename("balance_min")
     bal_mean = grp["balance"].mean().rename("balance_mean")
 
     out = pd.concat([neg_days, total_days, bal_min, bal_mean], axis=1)
-    out["balance_neg_days_ratio"] = (out["balance_neg_days"] / out["_total_days"].clip(lower=1))
+    out["balance_neg_days_ratio"] = out["balance_neg_days"] / out["_total_days"].clip(lower=1)
     out = out.drop(columns=["_total_days"])
     return out

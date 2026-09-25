@@ -2,6 +2,14 @@
 
 各实验版本中使用的所有特征，含详细说明与交易类别映射。
 
+当前入口使用语义化名称：`cashflow_44`、`frequency_6`、`behavior_6`、
+`balance_4`、`cashflow_56` 和 `cashflow_60`。下文的历史版本名称仍然可用；
+`cashflow_56` 与 `v15_4_keep_56` 的特征及顺序完全相同。
+
+保留的实现约定：7/30/90 天窗口包含边界日期；月度序列只包含有交易的月份，
+未补齐没有交易的月份；FFT 中名称包含 `power` 的比例实际按幅值计算，
+并非平方功率。详见 [Methodology](methodology.md)。
+
 ## 交易类别编号对照表
 
 | 编号 | 英文名 | 中文含义 |
@@ -78,8 +86,8 @@ v15 引入的基准特征集，共 44 个特征。
 
 | 特征 | 说明 |
 |------|------|
-| `inflow_to_balance_ratio` | `inflow_sum / abs(total_balance + 1)`，历史累计流入与当前余额的比值，反映资金周转规模 |
-| `outflow_to_balance_ratio` | `outflow_sum / abs(total_balance + 1)`，历史累计流出与余额的比值 |
+| `inflow_to_balance_ratio` | `inflow_sum / (abs(total_balance) + 1 + EPS)`，历史累计流入与当前余额的比值，反映资金周转规模 |
+| `outflow_to_balance_ratio` | `outflow_sum / (abs(total_balance) + 1 + EPS)`，历史累计流出与余额的比值 |
 | `outflow_to_inflow_ratio` | `outflow_sum / inflow_sum`，整体支出率 |
 | `recent_7d_to_30d_txn_ratio` | `txn_count_7d / txn_count_30d`，近 7 天交易是否集中于近 30 天 |
 | `recent_30d_to_90d_txn_ratio` | `txn_count_30d / txn_count_90d`，近 30 天交易是否集中于近 90 天 |
@@ -126,7 +134,7 @@ v15 引入的基准特征集，共 44 个特征。
 |------|------|
 | `inflow_gap_mean` | 相邻两笔流入之间的平均天数 |
 | `inflow_gap_cv` | 流入间隔的变异系数（`std / mean`），值高 = 收入不规律 |
-| `inflow_monthly_min` | 历史各月流入的最小值，反映收入下限 |
+| `inflow_monthly_min` | 有正向流入的月份中，月度流入总额的最小值；不包含零收入月份 |
 
 ### 账户历史
 
@@ -159,10 +167,10 @@ v15.4 新增的 6 个 FFT/频谱特征，从 15 个候选中筛选保留。基�
 |------|------|------|
 | `fft_inflow_dom_power_ratio` | 流入 | 主导频率幅度 / 总 AC 幅度，值高 = 流入具有强周期性（如固定工资） |
 | `fft_inflow_dom_freq_idx` | 流入 | 主导谐波的频率索引（1 = 全历史一个周期，2 = 两个周期，以此类推） |
-| `fft_inflow_low_freq_ratio` | 流入 | 频率索引 1–2 的功率占总 AC 功率比例，值高 = 流入以慢变趋势为主 |
+| `fft_inflow_low_freq_ratio` | 流入 | 频率索引 1–2 的幅值占总 AC 幅值比例，值高 = 流入以慢变趋势为主 |
 | `fft_inflow_spectral_entropy` | 流入 | 幅度谱的 Shannon 熵，低 = 周期性集中，高 = 噪声/不规律 |
 | `fft_outflow_dom_freq_idx` | 流出 | 流出序列的主导谐波频率索引 |
-| `fft_outflow_low_freq_ratio` | 流出 | 流出序列的低频功率占比 |
+| `fft_outflow_low_freq_ratio` | 流出 | 流出序列的低频幅值占比 |
 
 ---
 
@@ -189,3 +197,16 @@ v15.4 新增的 6 个信贷风险行为特征，从 16 个候选中筛选保留�
 | `v15_4_fft_6` | 6 | v15.4 新增 FFT/频谱特征 |
 | `v15_4_risk_6` | 6 | v15.4 新增信贷风险行为特征 |
 | `v15_4_keep_56` | 56 | 以上三个集合的并集（`v15_baseline_44 + v15_4_fft_6 + v15_4_risk_6`） |
+
+## 可选余额特征（`balance_4`）
+
+从评估日余额向前回推每日余额：当日余额等于评估日余额减去当日之后、
+截至评估日的交易净额。没有交易的日期补零净流量，统计区间从首笔交易到评估日。
+这些特征属于 60 特征扩展，不包含在默认 56 特征中。
+
+| 特征 | 说明 |
+|------|------|
+| `balance_neg_days` | 回推日余额为负的天数 |
+| `balance_neg_days_ratio` | 负余额天数占历史天数的比例 |
+| `balance_min` | 历史最小日余额 |
+| `balance_mean` | 历史平均日余额 |
