@@ -1,7 +1,7 @@
 # Refactor verification
 
 The reference implementation is commit
-[`d23acc4`](https://github.com/WItaZhang/cashflow/tree/d23acc43cb4930a8984d8c74e9cdb2b871fcc056).
+[`d23acc4`](https://github.com/WItaZhang/cashflow-credit-risk/tree/d23acc43cb4930a8984d8c74e9cdb2b871fcc056).
 These checks validate implementation equivalence, not credit-risk performance.
 
 ## Numerical comparison

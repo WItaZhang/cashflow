@@ -32,3 +32,6 @@ jobs:
         run: uv run --frozen python -m pytest -q
       - name: Run public demo
         run: uv run --frozen cashflow-demo --config configs/demo.yaml
+      - name: Render method figures
+        if: runner.os == 'Linux'
+        run: uv run --locked --group figures python scripts/figures/generate.py --config configs/figures/paper.yaml

@@ -1,5 +1,10 @@
 # Methodology
 
+The original consumer and transaction data are private and are not distributed.
+The public repository documents the algorithm and includes a synthetic execution
+demo. The architecture diagram describes the model's computation and is generated
+without consumer data.
+
 ## Prediction task and representation
 
 The pipeline predicts the binary `FPF_TARGET` label from a consumer's recorded
@@ -16,14 +21,20 @@ construction.
 |---|---:|---|
 | Cashflow and trends | 44 | Balance, recent inflows, category totals, income gaps, monthly slopes |
 | Frequency domain | 6 | Dominant-frequency index, low-frequency amplitude ratios, spectral entropy |
-| Behavioral risk | 6 | Long income gaps, transaction velocity, late-month activity, overdraft months |
+| Behavioral risk | 6 | Long income gaps, transaction velocity, late-month activity, negative-cashflow months |
 
 The implementation may compute supporting aggregates and additional candidates;
 only the selected 56 columns reach the model. Four reconstructed-balance features
 form a separate optional extension. See [the feature reference](feature_explanation.md)
-and `features/sets.py` for exact definitions and selection.
+and [`features/sets.py`](../src/cashflow_ml/features/sets.py) for exact definitions
+and selection.
 
 ## Router and experts
+
+[The architecture diagram](figures/architecture.svg) shows transaction history and
+recorded balance becoming a shared 56-feature vector, the parallel router and
+three experts, and their weighted output. It shows the standard inference path;
+training policies and exceptional cases are detailed below.
 
 For a feature vector `x`, the multiclass router estimates `r_c(x)`, the probability
 of membership in client `c`. Each expert estimates the positive-label probability
@@ -36,9 +47,13 @@ score(x) = sum(r_c(x) * p_c(x)) / sum(r_c(x))
 
 With all three experts present the denominator is one, up to numerical precision.
 If a group has too few training rows or only one label, its expert is skipped and
-the remaining router weights are renormalized. The router is trained on the
-original training rows, before expert-specific resampling. Each expert uses its
-own YAML-defined LightGBM parameters.
+the remaining router weights are renormalized. The implementation retains the
+historical denominator floor `max(sum(r_c(x)), 1e-9)` and raises an error when the
+available experts receive zero total router probability. With positive total
+weight below the floor, the result is correspondingly scaled down instead of
+being exactly normalized. The router is trained on the original training rows,
+before expert-specific resampling. Each expert uses its own YAML-defined
+LightGBM parameters.
 
 This is supervised client routing: the router learns client labels, not a joint
 end-to-end gating objective. At inference it computes weights from features;
@@ -79,8 +94,8 @@ and standard deviation. Correlated features can substitute for one another, and
 a negative importance can occur; this measures predictive dependence in this
 model, not causation or an independent business effect.
 
-The new `cashflow_moe_importance.yaml` configuration uses validation data for
-importance. Historical configurations without an explicit `permutation_split`
+The `cashflow_moe_importance.yaml` configuration uses ten permutation repeats per
+feature on validation data. Historical configurations without an explicit `permutation_split`
 retain their test-set analysis behavior. Using test importance repeatedly to
 select features compromises an untouched final evaluation; perform new feature
 selection on validation data and reserve test results for the final comparison.
@@ -99,6 +114,6 @@ selection on validation data and reserve test results for the final comparison.
 - The historical balance configurations disable sample weighting, whereas the
   56-feature reference enables it. Their results therefore do not isolate the
   value of balance features. A clean ablation must hold training policy fixed.
-- The original data and verified real-data scores are not provided.
-  Demo runs demonstrate reproducibility and execution, not real-world credit
-  performance, calibration, fairness, or superiority over a single model.
+- The original data, fitted artifacts, and real-data metrics remain private.
+  Demo runs demonstrate reproducibility and execution; synthetic metrics are
+  not estimates of real-world credit performance or evidence of a modeling gain.

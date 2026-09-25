@@ -1,0 +1,6 @@
+# Static method figures: no dataset or experiment artifact is read.
+output_dir: docs/figures
+raster_dpi: 300
+figures:
+  - architecture
+pdf_filename: cashflow-methods.pdf

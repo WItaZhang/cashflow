@@ -1,13 +1,20 @@
 # Cashflow Credit Risk
 
-Credit-risk modeling from transaction histories across three client groups.
-A learned LightGBM router combines the predictions of group-specific experts,
-using 56 cashflow features to represent income regularity, liquidity trends,
-transaction behavior, and frequency-domain patterns.
+Credit-risk modeling across three client groups with a **soft-routing LightGBM
+mixture of experts**. Transaction histories and consumer balances become 56
+features; a learned router combines three group-specific risk predictions.
 
-The repository includes configuration-driven experiments, an explicit feature
-catalog, reproducible model artifacts, and a synthetic demo that runs without
-access to the original data.
+![Transaction history and consumer balance become a shared 56-feature vector. A LightGBM router weights the predictions of three group-specific experts to produce a credit-risk score.](docs/figures/architecture.png)
+
+*Model overview. The router and all three experts receive the same feature vector.
+Each expert predicts risk; the router learns how much weight to assign to each
+prediction. Client labels supervise router training; inference uses features alone.*
+[Editable SVG](docs/figures/architecture.svg) ·
+[Vector PDF](docs/figures/cashflow-methods.pdf)
+
+The original consumer and transaction data are private. The public repository
+includes the implementation, experiment configurations, regression checks, and a
+synthetic demo. The diagram illustrates the computation without using consumer data.
 
 ## The approach
 
@@ -22,23 +29,10 @@ access to the original data.
 - **Inspectable evaluation.** Per-client and mean client ROC-AUC, saved split
   assignments and predictions, and optional repeated permutation importance.
 
-```mermaid
-flowchart LR
-    A[Consumers + transaction history] --> B[56 cashflow features]
-    B --> C[Per-client stratified split]
-    C --> D[Router: client probabilities]
-    C --> E[Training-only group sampling]
-    E --> F[C01 / C02 / C03 experts]
-    D --> G[Probability-weighted prediction]
-    F --> G
-    G --> H[Holdout AUC + permutation importance]
-```
-
 The design allows groups to have different decision functions while blending
-their predictions for each consumer. Whether this improves on a single
-LightGBM requires a controlled real-data comparison; the architecture alone
-does not establish a gain. [Methodology and preserved behavior](docs/methodology.md)
-explain the training details and evaluation limits.
+their predictions for each consumer. [Methodology and preserved behavior](docs/methodology.md)
+describe routing, sampling, and evaluation. Model comparisons use matched splits
+and training policies.
 
 ## Run the demo
 
@@ -59,9 +53,9 @@ data is never overwritten.
 All generator settings live in the YAML. The synthetic labels are independent
 of the transaction histories, so its AUC is **not a model-quality result**.
 
-## Run with real data
+## Run with private data
 
-Place the original parquet files in the locations specified by
+For authorized local use, place the private parquet files in the locations specified by
 [`configs/cashflow_moe.yaml`](configs/cashflow_moe.yaml), or copy that configuration
 and update its `data` paths. The required columns and transaction sign convention
 are documented in [the data contract](docs/data.md).
@@ -93,15 +87,27 @@ logs/YYYYMMDD_HHMMSS_<experiment_name>/
   permutation_importance.json          when enabled
 ```
 
-Data, predictions, and fitted models are excluded from git. Real-data benchmark
-results are not bundled; comparisons should use the same split and training
-policy, with the corresponding run artifacts retained.
+Data, predictions, and fitted models are excluded from git. Real-data metrics and
+run artifacts remain local; the public demo verifies execution and reproducibility.
+
+## Reproduce the diagram
+
+The architecture diagram is generated from source without loading consumer data:
+
+```bash
+uv sync --group figures
+uv run --group figures python scripts/figures/generate.py --config configs/figures/paper.yaml
+```
+
+This exports a PNG preview, an editable SVG, and a one-page vector PDF.
+See the [figure guide](docs/figures/README.md) for the diagram's scope and export settings.
 
 ## Code map
 
 | Location | Responsibility |
 |---|---|
-| `configs/` | Complete experiment settings and demo generation parameters |
+| `configs/` | Experiment settings, demo generation, and figure export parameters |
+| `scripts/figures/` | Reproducible architecture diagram |
 | `src/cashflow_ml/data.py` | Parquet loading, input validation, and splitting |
 | `src/cashflow_ml/features/` | Stateless feature families and named feature sets |
 | `src/cashflow_ml/models/` | Router/expert model definition and prediction |
