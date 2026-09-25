@@ -18,6 +18,8 @@ def standard_holdout(test_df: pd.DataFrame, y_pred) -> dict:
 
 
 def auc_only(test_df: pd.DataFrame, y_pred) -> dict:
+    if test_df["FPF_TARGET"].nunique() < 2:
+        raise ValueError("ROC-AUC is undefined: the holdout must contain both target classes.")
     return {
         "test_auc": float(roc_auc_score(test_df["FPF_TARGET"].astype(int), y_pred)),
     }

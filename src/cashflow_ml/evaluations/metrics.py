@@ -15,7 +15,11 @@ def group_auc(df: pd.DataFrame, y_pred) -> float:
         if group["FPF_TARGET"].nunique() < 2:
             continue
         aucs.append(roc_auc_score(group["FPF_TARGET"].astype(int), group["_y_pred"]))
-    return float(np.mean(aucs)) if aucs else float("nan")
+    if not aucs:
+        raise ValueError(
+            "Group AUC is undefined: no client in the holdout contains both target classes."
+        )
+    return float(np.mean(aucs))
 
 
 def per_group_auc(df: pd.DataFrame, y_pred, group_col: str = "_client") -> dict[str, float]:

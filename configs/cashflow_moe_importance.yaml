@@ -1,24 +1,19 @@
+# Same model; explain feature contributions on validation data.
 seed: 42
-
 runtime:
   n_jobs: 8
-
 experiment:
-  name: v15_4_moe_57_features_balance_mean
-
+  name: cashflow_moe_56_importance
+  log_root: logs
 data:
   consumer_file: data/raw/consumer_data.parquet
   transactions_dir: data/raw/transactions
-
 features:
   feature_sets:
-    - v15_4_keep_56
-  extra_features:
-    - balance_mean
-
+  - cashflow_56
+  extra_features: []
 split:
   name: per_client_stratified_622
-
 model:
   name: soft_routing_lgbm_moe
   version: v15_4
@@ -54,16 +49,18 @@ model:
         bagging_freq: 5
   training:
     min_expert_rows: 20
-    downsample_negative_clients: [C01, C03]
+    downsample_negative_clients:
+    - C01
+    - C03
     downsample_negative_keep_ratio: 0.2
-    smote_positive_clients: [C01, C03]
+    smote_positive_clients:
+    - C01
+    - C03
     smote_positive_multiplier: 2.0
     smote_k_neighbors: 5
-    sample_weight: false  # Preserve the original default; not a controlled baseline ablation.
-
+    sample_weight: true
 evaluation:
   name: standard_holdout
-  permutation_features:
-    - balance_mean
+  permutation_features: all
+  permutation_split: validation
   permutation_n_repeats: 10
-  permutation_split: test  # Historical analysis setting; use validation for feature selection.
